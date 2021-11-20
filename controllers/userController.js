@@ -1,3 +1,5 @@
+const User = require('../models/user');
+
 exports.getAllUser = (req, res) => {};
 
 exports.createUser = (req, res) => {};
