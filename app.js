@@ -10,7 +10,6 @@ const userRouter = require('./routes/userRoutes');
 
 const globalErrors = require('./middleware/errorsMiddleware');
 
-const PORT = 3001;
 const app = express();
 
 app.use(bodyParser.urlencoded({ extended: true }));
