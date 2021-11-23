@@ -11,7 +11,7 @@ const {
   deleteTour,
 } = require('../controllers/tourController');
 
-const authMiddleware = require('../middleware/auth');
+const { authMiddleware, restrictTo } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -22,6 +22,10 @@ router.route('/monthly-plan/:year').get(getMonthlyPlan);
 
 router.route('/').get(authMiddleware, getAllTours).post(createTour);
 
-router.route('/:id').get(getTour).patch(updateTour).delete(deleteTour);
+router
+  .route('/:id')
+  .get(getTour)
+  .patch(updateTour)
+  .delete(authMiddleware, restrictTo('admin', 'lead-guide'), deleteTour);
 
 module.exports = router;

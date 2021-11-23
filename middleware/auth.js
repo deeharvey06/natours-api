@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 const AppError = require('../utils/appError');
 
-module.exports = async (req, res, next) => {
+exports.authMiddleware = async (req, res, next) => {
   // 1) Getting token and check of it's there
   let token;
   if (
@@ -45,3 +45,17 @@ module.exports = async (req, res, next) => {
   req.user = currentUser;
   next();
 };
+
+exports.restrictTo =
+  (...roles) =>
+  (req, res, next) => {
+    const { role } = req.user;
+
+    if (!roles.includes(role)) {
+      return next(
+        new AppError('You do not have permission to perform this action', 403)
+      );
+    }
+
+    next();
+  };
