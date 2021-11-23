@@ -59,3 +59,25 @@ exports.restrictTo =
 
     next();
   };
+
+exports.forgotPassword = async (req, res, next) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return next(
+        new AppError('There is no user with that email address', 404)
+      );
+    }
+
+    const resetToken = user.createPasswordResetToken();
+    //inside middleware document was updated but not save()
+    user.save({ validateBeforeUpdate: false });
+  } catch (error) {
+    next(new AppError('There is no user with that email address', 404));
+  }
+};
+
+exports.resetPassword = (req, res, next) => {};
