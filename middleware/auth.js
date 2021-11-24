@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 
 const User = require('../models/user');
 const AppError = require('../utils/appError');
+const sendEmail = require('../utils/email');
 
 exports.authMiddleware = async (req, res, next) => {
   // 1) Getting token and check of it's there
@@ -62,9 +63,10 @@ exports.restrictTo =
 
 exports.forgotPassword = async (req, res, next) => {
   const { email } = req.body;
+  let user;
 
   try {
-    const user = await User.findOne({ email });
+    user = await User.findOne({ email });
 
     if (!user) {
       return next(
@@ -74,9 +76,35 @@ exports.forgotPassword = async (req, res, next) => {
 
     const resetToken = user.createPasswordResetToken();
     //inside middleware document was updated but not save()
-    user.save({ validateBeforeUpdate: false });
+    await user.save({ validateBeforeUpdate: false });
+
+    const resetURL = `${req.protocol}://${req.get(
+      'host'
+    )}/api/v1/users/resetPassword/${resetToken}`;
+
+    const message = `Forgot your password? Submit a PATCH request with your new password and passwordConfirm to: ${resetURL}`;
+
+    await sendEmail({
+      email: user.email,
+      subject: 'Your password reset token (valid for 10 min)',
+      message,
+    });
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Token sent to email!',
+    });
   } catch (error) {
-    next(new AppError('There is no user with that email address', 404));
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save({ validateBeforeUpdate: false });
+
+    next(
+      new AppError(
+        'There was an error sending the eamil. Try again later!',
+        500
+      )
+    );
   }
 };
 
