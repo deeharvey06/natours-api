@@ -7,6 +7,8 @@ const signToken = async (id) =>
     expiresIn: process.env.JWT_EXPIRES_IN,
   });
 
+exports.signToken = signToken;
+
 exports.signup = async (req, res, next) => {
   const { name, email, password, passwordConfirm } = req.body;
 

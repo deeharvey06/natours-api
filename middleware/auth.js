@@ -1,9 +1,13 @@
+const crypto = require('crypto');
 const { promisify } = require('util');
+
 const jwt = require('jsonwebtoken');
 
 const User = require('../models/user');
 const AppError = require('../utils/appError');
 const sendEmail = require('../utils/email');
+
+const { signToken } = require('../controllers/authController');
 
 exports.authMiddleware = async (req, res, next) => {
   // 1) Getting token and check of it's there
@@ -108,4 +112,36 @@ exports.forgotPassword = async (req, res, next) => {
   }
 };
 
-exports.resetPassword = (req, res, next) => {};
+exports.resetPassword = async (req, res, next) => {
+  const { token } = req.params;
+  const { password, passwordConfirm } = req.body;
+  const hashedToken = crypto.createhash('sha256').update(token).digest('hex');
+
+  try {
+    const user = await User.findOne({
+      passwordResetToken: hashedToken,
+      //  checking to see if the timestamp is greater than now
+      passwordResetExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return next(new AppError('Token is invalid or has expired', 400));
+    }
+
+    user.password = password;
+    user.passwordConfirm = passwordConfirm;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save();
+
+    const newToken = signToken(user._id);
+
+    res.status(200).json({
+      status: 'success',
+      newToken,
+      data: { user },
+    });
+  } catch (error) {
+    next(new AppError(error.message, error.statusCode));
+  }
+};
