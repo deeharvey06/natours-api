@@ -7,7 +7,7 @@ const User = require('../models/user');
 const AppError = require('../utils/appError');
 const sendEmail = require('../utils/email');
 
-const { signToken } = require('../controllers/authController');
+const { createSendToken } = require('../controllers/authController');
 
 exports.authMiddleware = async (req, res, next) => {
   // 1) Getting token and check of it's there
@@ -134,13 +134,7 @@ exports.resetPassword = async (req, res, next) => {
     user.passwordResetExpires = undefined;
     await user.save();
 
-    const newToken = signToken(user._id);
-
-    res.status(200).json({
-      status: 'success',
-      newToken,
-      data: { user },
-    });
+    createSendToken(user, 200, res);
   } catch (error) {
     next(new AppError(error.message, error.statusCode));
   }

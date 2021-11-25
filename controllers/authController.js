@@ -9,6 +9,20 @@ const signToken = async (id) =>
 
 exports.signToken = signToken;
 
+const createSendToken = async (user, statsuCode, res) => {
+  const token = signToken(user._id);
+
+  res.status(statsuCode).json({
+    status: 'success',
+    token,
+    data: {
+      user,
+    },
+  });
+};
+
+exports.createSendToken = createSendToken;
+
 exports.signup = async (req, res, next) => {
   const { name, email, password, passwordConfirm } = req.body;
 
@@ -22,15 +36,7 @@ exports.signup = async (req, res, next) => {
 
     if (!newUser) return next(new AppError('', 400));
 
-    const token = signToken(newUser._id);
-
-    res.status(201).json({
-      status: 'success',
-      token,
-      data: {
-        user: newUser,
-      },
-    });
+    createSendToken(newUser, 201, res);
   } catch (err) {
     next(new AppError(err.message, 400));
   }
@@ -49,13 +55,32 @@ exports.login = async (req, res, next) => {
     if (!user || !(await user.correctPassword(password, user.password)))
       return next(new AppError('Incorrect email or password', 401));
 
-    const token = signToken(user._id);
+    createSendToken(user, 200, res);
+  } catch (error) {
+    next(new AppError(error.message, error.statusCode));
+  }
+};
 
-    res.status(200).json({
-      status: 'success',
-      token,
-      data: { user },
-    });
+exports.updatePassword = async (req, res, next) => {
+  const { currentPassword, password, passwordConfirm } = req.body;
+  const { id } = req.user;
+
+  try {
+    const user = await User.findById({ id }).select('+password');
+
+    if (!user) {
+      return next(new AppError('user not found', 404));
+    }
+
+    if (!(await user.correctPassword(currentPassword, user.password))) {
+      return new AppError('Your current password is wrong', 401);
+    }
+
+    user.password = password;
+    user.passwordConfirm = passwordConfirm;
+    await user.save();
+
+    createSendToken(user, 200, res);
   } catch (error) {
     next(new AppError(error.message, error.statusCode));
   }
