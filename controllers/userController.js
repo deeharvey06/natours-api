@@ -2,7 +2,7 @@ const User = require('../models/user');
 const AppError = require('../utils/appError');
 
 const filterObj = (body, ...allowedFields) => {
-  let filteredObj = {};
+  const filteredObj = {};
   Object.keys(body).forEach((key) => {
     if (allowedFields.includes(key)) {
       filteredObj[key] = body[key];
@@ -54,6 +54,21 @@ exports.updateMe = async (req, res, next) => {
     });
   } catch (err) {
     next(new AppError(err.message, err.statusCode));
+  }
+};
+
+exports.deleteMe = async (req, res, next) => {
+  const { id } = req.user;
+
+  try {
+    await User.findByIdAndUpdate(id, { active: false });
+
+    res.status(204).json({
+      status: 'success',
+      data: null,
+    });
+  } catch (error) {
+    next(new AppError(error.message, error.statusCode));
   }
 };
 
