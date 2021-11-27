@@ -11,6 +11,20 @@ exports.signToken = signToken;
 
 const createSendToken = async (user, statsuCode, res) => {
   const token = signToken(user._id);
+  const cookieOption = {
+    expires: new Date(
+      Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
+    ),
+    httpOnly: true,
+  };
+
+  // Wont send cookies in dev b/c its not HTTPS
+  if (process.env.NODE_ENV === 'production') cookieOption.secure = true;
+
+  res.cookie('jwt', token, cookieOption);
+
+  // Romoves password from output
+  user.password = undefined;
 
   res.status(statsuCode).json({
     status: 'success',
